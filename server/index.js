@@ -3,11 +3,19 @@ import cors from "cors";
 import "dotenv/config";
 import mongoose from "mongoose";
 
+import authRoutes from "./routes/auth.js";
+import errorHandler from "./middleware/errorHandler.js";
+
 const app = express();
 
 // Middlewares
 app.use(cors());
 app.use(express.json());
+
+// Routes
+app.use("/api/auth", authRoutes);
+
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
