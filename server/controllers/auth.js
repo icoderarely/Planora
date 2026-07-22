@@ -3,6 +3,7 @@ import User from "../models/user.js";
 import AppError from "../utils/AppError.js";
 import { sendOtpEmail } from "../utils/email.js";
 import generateToken from "../utils/generateToken.js";
+import bcrypt from "bcryptjs";
 
 export const registerUser = async (req, res) => {
   const { name, email, password } = req.body;
@@ -18,7 +19,7 @@ export const registerUser = async (req, res) => {
   // await user.save();
   const user = await User.create({ name, email, password: hashedPassword });
 
-  const otp = Math.flood(100_000 + Math.random() * 900_000).toString();
+  const otp = Math.floor(100_000 + Math.random() * 900_000).toString();
   console.log(`OTP for ${email}: ${otp}`);
 
   await OTP.create({ email, otp, action: "account_verification" });
@@ -34,7 +35,7 @@ export const registerUser = async (req, res) => {
 export const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email }).select("+password");
   if (!user) {
     throw new AppError("Invalid credentials", 400);
   }
@@ -50,7 +51,7 @@ export const loginUser = async (req, res) => {
     await OTP.deleteMany({ email, action: "account_verification" });
 
     await OTP.create({ email, otp, action: "account_verification" });
-    await sendOTPEmail(email, otp, "account_verification");
+    await sendOtpEmail(email, otp, "account_verification");
     throw new AppError(
       "Accout not verified. A new OTP has been sent to your email.",
       400,
@@ -82,7 +83,11 @@ export const verifyOTP = async (req, res) => {
     throw new AppError("Invalid or expired OTP", 400);
   }
 
-  await User.findOneAndUpdate({ email }, { isVerified: true });
+  const user = await User.findOneAndUpdate(
+    { email },
+    { isVerified: true },
+    { new: true },
+  );
   await OTP.deleteMany({ email, action: "account_verification" });
 
   res.json({

@@ -14,6 +14,10 @@ const otpSchema = new mongoose.Schema(
       type: String,
       enum: ["account_verification", "event_booking"],
     },
+    createdAt: {
+      type: Date,
+      expires: 600, // Delete document 10 minutes after createdAt
+    },
   },
   {
     timestamps: true,
